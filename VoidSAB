@@ -13,11 +13,11 @@ local function boostLabel(label)
     if billboard then
         billboard.MaxDistance = 1e9
         billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 600, 0, 300)
+        billboard.Size = UDim2.new(0, 300, 0, 150) -- 2x smaller than before
         billboard.StudsOffset = Vector3.new(0, 5, 0)
 
         label.TextScaled = true
-        label.TextSize = 100
+        label.TextSize = 50 -- 2x smaller than before
         label.TextStrokeTransparency = 0
         label.TextStrokeColor3 = Color3.new(0,0,0)
         label.TextColor3 = Color3.new(1, 1, 0)
