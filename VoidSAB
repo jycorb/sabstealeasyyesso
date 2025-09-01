@@ -37,42 +37,50 @@ end
 
 -- Add ESP to a character
 local function addESP(character, player)
-    if not character or espAdded[player] then return end
-    espAdded[player] = true
+    if not character then return end
+    espAdded[player] = espAdded[player] or {} -- track adornments
 
     -- Name ESP
-    local head = character:WaitForChild("Head", 5)
-    local nameBill = Instance.new("BillboardGui")
-    nameBill.Name = "NameESP"
-    nameBill.Adornee = head
-    nameBill.AlwaysOnTop = true
-    nameBill.Size = UDim2.new(0, 200, 0, 50)
-    nameBill.StudsOffset = Vector3.new(0, 3, 0)
-    nameBill.MaxDistance = 1000
-    nameBill.Parent = head
+    local head = character:FindFirstChild("Head")
+    if head and not head:FindFirstChild("NameESP") then
+        local nameBill = Instance.new("BillboardGui")
+        nameBill.Name = "NameESP"
+        nameBill.Adornee = head
+        nameBill.AlwaysOnTop = true
+        nameBill.Size = UDim2.new(0, 200, 0, 50)
+        nameBill.StudsOffset = Vector3.new(0, 3, 0)
+        nameBill.MaxDistance = 1000
+        nameBill.Parent = head
 
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1,0,1,0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = player.Name
-    nameLabel.TextColor3 = Color3.new(1,0,0)
-    nameLabel.TextScaled = true
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextStrokeTransparency = 0
-    nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
-    nameLabel.Parent = nameBill
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1,0,1,0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = player.Name
+        nameLabel.TextColor3 = Color3.new(1,0,0)
+        nameLabel.TextScaled = true
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextStrokeTransparency = 0
+        nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
+        nameLabel.Parent = nameBill
+    end
 
-    -- Body ESP using BoxHandleAdornment (scales naturally)
+    -- Body ESP
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
-            local box = Instance.new("BoxHandleAdornment")
-            box.Adornee = part
-            box.Size = part.Size
-            box.Transparency = 0.5
-            box.Color3 = Color3.new(1,0,0)
-            box.AlwaysOnTop = true
-            box.ZIndex = 10
-            box.Parent = part
+            local box = part:FindFirstChild("ESPBox")
+            if not box then
+                box = Instance.new("BoxHandleAdornment")
+                box.Name = "ESPBox"
+                box.Adornee = part
+                box.Size = part.Size
+                box.Transparency = 0.5
+                box.Color3 = Color3.new(1,0,0)
+                box.AlwaysOnTop = true
+                box.ZIndex = 10
+                box.Parent = part
+            else
+                box.Size = part.Size -- keep updating size if it changes
+            end
         end
     end
 end
@@ -82,7 +90,6 @@ task.spawn(function()
     while task.wait(1) do
         for _, label in ipairs(workspace:GetDescendants()) do
             if label:IsA("TextLabel") then
-                -- RemainingTime / Secret ESP
                 if label.Name == "RemainingTime" then
                     boostLabel(label)
                 elseif string.find(label.Text, "Secret") then
@@ -99,11 +106,8 @@ task.spawn(function()
                         end)
                     end
                 end
-
-                -- Generation check
                 if label.Name == "Generation" and not notifiedGeneration[label] then
                     local valueText = label.Text
-                    -- match format like "$X.XM/s"
                     local amount = string.match(valueText, "%$(%d+%.%d+)M/s")
                     if amount and tonumber(amount) and tonumber(amount) > 2.0 then
                         notifiedGeneration[label] = true
@@ -124,9 +128,7 @@ end)
 -- ESP for players
 local function onCharacterAdded(character, player)
     task.wait(1)
-    if character:FindFirstChild("HumanoidRootPart") then
-        addESP(character, player)
-    end
+    addESP(character, player)
 end
 
 local function onPlayerAdded(player)
@@ -145,10 +147,11 @@ for _, p in ipairs(Players:GetPlayers()) do
 end
 Players.PlayerAdded:Connect(onPlayerAdded)
 
--- Update name ESP every frame for scaling
+-- Update name ESP and body ESP every frame
 RunService.RenderStepped:Connect(function()
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Character then
+            addESP(player.Character, player) -- continuously update body ESP
             local head = player.Character:FindFirstChild("Head")
             if head then
                 local nameBill = head:FindFirstChild("NameESP")
