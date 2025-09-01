@@ -1,0 +1,161 @@
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
+local camera = workspace.CurrentCamera
+
+local notifiedSecrets = {}
+local espAdded = {}
+local notifiedGeneration = {} -- track which Generation labels already notified
+
+-- Boost RemainingTime / Secret labels
+local function boostLabel(label)
+    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
+    if billboard then
+        billboard.MaxDistance = 1e9
+        billboard.AlwaysOnTop = true
+        billboard.Size = UDim2.new(0, 600, 0, 300)
+        billboard.StudsOffset = Vector3.new(0, 5, 0)
+
+        label.TextScaled = true
+        label.TextSize = 100
+        label.TextStrokeTransparency = 0
+        label.TextStrokeColor3 = Color3.new(0,0,0)
+        label.TextColor3 = Color3.new(1, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.GothamBold
+    end
+end
+
+-- Update Name ESP size dynamically based on distance
+local function updateNameESP(nameBill)
+    local adornee = nameBill.Adornee
+    if not adornee then return end
+    local dist = (camera.CFrame.Position - adornee.Position).Magnitude
+    local scale = math.clamp(50 / dist, 0.5, 2) -- closer = bigger, farther = smaller
+    nameBill.Size = UDim2.new(0, 200 * scale, 0, 50 * scale)
+end
+
+-- Add ESP to a character
+local function addESP(character, player)
+    if not character or espAdded[player] then return end
+    espAdded[player] = true
+
+    -- Name ESP
+    local head = character:WaitForChild("Head", 5)
+    local nameBill = Instance.new("BillboardGui")
+    nameBill.Name = "NameESP"
+    nameBill.Adornee = head
+    nameBill.AlwaysOnTop = true
+    nameBill.Size = UDim2.new(0, 200, 0, 50)
+    nameBill.StudsOffset = Vector3.new(0, 3, 0)
+    nameBill.MaxDistance = 1000
+    nameBill.Parent = head
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1,0,1,0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = player.Name
+    nameLabel.TextColor3 = Color3.new(1,0,0)
+    nameLabel.TextScaled = true
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
+    nameLabel.Parent = nameBill
+
+    -- Body ESP using BoxHandleAdornment (scales naturally)
+    for _, part in ipairs(character:GetChildren()) do
+        if part:IsA("BasePart") then
+            local box = Instance.new("BoxHandleAdornment")
+            box.Adornee = part
+            box.Size = part.Size
+            box.Transparency = 0.5
+            box.Color3 = Color3.new(1,0,0)
+            box.AlwaysOnTop = true
+            box.ZIndex = 10
+            box.Parent = part
+        end
+    end
+end
+
+-- Loop for RemainingTime / Secret labels + Generation check
+task.spawn(function()
+    while task.wait(1) do
+        for _, label in ipairs(workspace:GetDescendants()) do
+            if label:IsA("TextLabel") then
+                -- RemainingTime / Secret ESP
+                if label.Name == "RemainingTime" then
+                    boostLabel(label)
+                elseif string.find(label.Text, "Secret") then
+                    boostLabel(label)
+                    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
+                    if billboard and not notifiedSecrets[billboard] then
+                        notifiedSecrets[billboard] = true
+                        pcall(function()
+                            StarterGui:SetCore("SendNotification", {
+                                Title = "Secret in server",
+                                Text = "Somebody has a secret in this server..",
+                                Duration = 5
+                            })
+                        end)
+                    end
+                end
+
+                -- Generation check
+                if label.Name == "Generation" and not notifiedGeneration[label] then
+                    local valueText = label.Text
+                    -- match format like "$X.XM/s"
+                    local amount = string.match(valueText, "%$(%d+%.%d+)M/s")
+                    if amount and tonumber(amount) and tonumber(amount) > 2.0 then
+                        notifiedGeneration[label] = true
+                        pcall(function()
+                            StarterGui:SetCore("SendNotification", {
+                                Title = valueText .. " Brainrot is in your server!",
+                                Text = "",
+                                Duration = 5
+                            })
+                        end)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ESP for players
+local function onCharacterAdded(character, player)
+    task.wait(1)
+    if character:FindFirstChild("HumanoidRootPart") then
+        addESP(character, player)
+    end
+end
+
+local function onPlayerAdded(player)
+    player.CharacterAdded:Connect(function(char)
+        onCharacterAdded(char, player)
+    end)
+    if player.Character then
+        onCharacterAdded(player.Character, player)
+    end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= Players.LocalPlayer then
+        onPlayerAdded(p)
+    end
+end
+Players.PlayerAdded:Connect(onPlayerAdded)
+
+-- Update name ESP every frame for scaling
+RunService.RenderStepped:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character then
+            local head = player.Character:FindFirstChild("Head")
+            if head then
+                local nameBill = head:FindFirstChild("NameESP")
+                if nameBill then
+                    updateNameESP(nameBill)
+                end
+            end
+        end
+    end
+end)
