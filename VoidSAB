@@ -7,17 +7,36 @@ local notifiedSecrets = {}
 local espAdded = {}
 local notifiedGeneration = {} -- track which Generation labels already notified
 
--- Boost RemainingTime / Secret labels
-local function boostLabel(label)
+-- Boost Secret label
+local function boostSecret(label)
     local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
     if billboard then
         billboard.MaxDistance = 1e9
         billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 300, 0, 150) -- 2x smaller than before
+        billboard.Size = UDim2.new(0, 300, 0, 150) -- base small size
         billboard.StudsOffset = Vector3.new(0, 5, 0)
 
         label.TextScaled = true
-        label.TextSize = 50 -- 2x smaller than before
+        label.TextSize = 50 -- small text
+        label.TextStrokeTransparency = 0
+        label.TextStrokeColor3 = Color3.new(0,0,0)
+        label.TextColor3 = Color3.new(1, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.GothamBold
+    end
+end
+
+-- Boost RemainingTime label (slightly bigger than Secret)
+local function boostRemainingTime(label)
+    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
+    if billboard then
+        billboard.MaxDistance = 1e9
+        billboard.AlwaysOnTop = true
+        billboard.Size = UDim2.new(0, 600, 0, 320) -- 1.5x Secret size
+        billboard.StudsOffset = Vector3.new(0, 5, 0)
+
+        label.TextScaled = true
+        label.TextSize = 75 -- 1.5x Secret text size
         label.TextStrokeTransparency = 0
         label.TextStrokeColor3 = Color3.new(0,0,0)
         label.TextColor3 = Color3.new(1, 1, 0)
@@ -92,9 +111,9 @@ task.spawn(function()
         for _, label in ipairs(workspace:GetDescendants()) do
             if label:IsA("TextLabel") then
                 if label.Name == "RemainingTime" then
-                    boostLabel(label)
+                    boostRemainingTime(label)
                 elseif string.find(label.Text, "Secret") then
-                    boostLabel(label)
+                    boostSecret(label)
                     local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
                     if billboard and not notifiedSecrets[billboard] then
                         notifiedSecrets[billboard] = true
