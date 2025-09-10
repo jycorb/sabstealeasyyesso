@@ -13,11 +13,11 @@ local function boostSecret(label)
     if billboard then
         billboard.MaxDistance = 1e9
         billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 300, 0, 150) -- base small size
+        billboard.Size = UDim2.new(0, 300, 0, 150)
         billboard.StudsOffset = Vector3.new(0, 5, 0)
 
         label.TextScaled = true
-        label.TextSize = 50 -- small text
+        label.TextSize = 50
         label.TextStrokeTransparency = 0
         label.TextStrokeColor3 = Color3.new(0,0,0)
         label.TextColor3 = Color3.new(1, 1, 0)
@@ -32,11 +32,11 @@ local function boostRemainingTime(label)
     if billboard then
         billboard.MaxDistance = 1e9
         billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 600, 0, 320) -- 1.5x Secret size
+        billboard.Size = UDim2.new(0, 600, 0, 320)
         billboard.StudsOffset = Vector3.new(0, 5, 0)
 
         label.TextScaled = true
-        label.TextSize = 75 -- 1.5x Secret text size
+        label.TextSize = 75
         label.TextStrokeTransparency = 0
         label.TextStrokeColor3 = Color3.new(0,0,0)
         label.TextColor3 = Color3.new(1, 1, 0)
@@ -45,20 +45,39 @@ local function boostRemainingTime(label)
     end
 end
 
--- Update Name ESP size dynamically based on distance
+-- Boost Brainrot Generation labels (same size as Secret)
+local function boostBrainrot(label)
+    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
+    if billboard then
+        billboard.MaxDistance = 1e9
+        billboard.AlwaysOnTop = true
+        billboard.Size = UDim2.new(0, 300, 0, 150)
+        billboard.StudsOffset = Vector3.new(0, 5, 0)
+
+        label.TextScaled = true
+        label.TextSize = 50
+        label.TextStrokeTransparency = 0
+        label.TextStrokeColor3 = Color3.new(0,0,0)
+        label.TextColor3 = Color3.new(0, 1, 0) -- green so it stands out
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.GothamBold
+    end
+end
+
+-- Update Name ESP size dynamically
 local function updateNameESP(nameBill)
     local adornee = nameBill.Adornee
     if not adornee then return end
     local dist = (camera.CFrame.Position - adornee.Position).Magnitude
-    local scale = math.clamp(50 / dist, 0.5, 2) -- closer = bigger, farther = smaller
+    local scale = math.clamp(50 / dist, 0.5, 2)
     nameBill.Size = UDim2.new(0, 200 * scale, 0, 50 * scale)
 end
 
 -- Add ESP to a character
 local function addESP(character, player)
     if not character then return end
-    if player == Players.LocalPlayer then return end -- skip ESP for yourself
-    espAdded[player] = espAdded[player] or {} -- track adornments
+    if player == Players.LocalPlayer then return end
+    espAdded[player] = espAdded[player] or {}
 
     -- Name ESP
     local head = character:FindFirstChild("Head")
@@ -99,13 +118,13 @@ local function addESP(character, player)
                 box.ZIndex = 10
                 box.Parent = part
             else
-                box.Size = part.Size -- keep updating size if it changes
+                box.Size = part.Size
             end
         end
     end
 end
 
--- Loop for RemainingTime / Secret labels + Generation check
+-- Loop for RemainingTime / Secret / Brainrot check
 task.spawn(function()
     while task.wait(1) do
         for _, label in ipairs(workspace:GetDescendants()) do
@@ -128,12 +147,13 @@ task.spawn(function()
                 end
                 if label.Name == "Generation" and not notifiedGeneration[label] then
                     local valueText = label.Text
-                    local amount = string.match(valueText, "%$(%d+%.%d+)M/s")
+                    local amount = string.match(valueText, "%$(%d+%.?%d*)M/s")
                     if amount and tonumber(amount) and tonumber(amount) > 2.0 then
                         notifiedGeneration[label] = true
+                        boostBrainrot(label)
                         pcall(function()
                             StarterGui:SetCore("SendNotification", {
-                                Title = valueText .. " Brainrot is in your server!",
+                                Title = valueText .. " Brainrot in your server!",
                                 Text = "",
                                 Duration = 5
                             })
@@ -170,8 +190,8 @@ Players.PlayerAdded:Connect(onPlayerAdded)
 -- Update name ESP and body ESP every frame
 RunService.RenderStepped:Connect(function()
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer and player.Character then -- skip local player
-            addESP(player.Character, player) -- continuously update body ESP
+        if player ~= Players.LocalPlayer and player.Character then
+            addESP(player.Character, player)
             local head = player.Character:FindFirstChild("Head")
             if head then
                 local nameBill = head:FindFirstChild("NameESP")
