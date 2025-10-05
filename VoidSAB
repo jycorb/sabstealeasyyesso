@@ -2,24 +2,31 @@ local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
+local notifiedSecrets = {}
+local espAdded = {}
 local notifiedGeneration = {} -- Track which Generation labels already notified
 local highestGenLabel = nil -- Track the label with the highest generation rate
 local highestGenValue = 0 -- Track the highest generation value
 
--- Function to parse generation value (e.g., $150/s or $9.5M/s)
-local function parseGenerationValue(text)
-    local number, unit = string.match(text, "%$(%d+%.?%d*)[M]?/s")
-    if number then
-        number = tonumber(number) or 0
-        if unit == "M" then
-            number = number * 1e6 -- Convert millions to base units
-        end
-        return number
+-- Boost RemainingTime label
+local function boostRemainingTime(label)
+    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
+    if billboard then
+        billboard.MaxDistance = 1e9
+        billboard.AlwaysOnTop = true
+        billboard.Size = UDim2.new(0, 600, 0, 320)
+        billboard.StudsOffset = Vector3.new(0, 5, 0)
+        label.TextScaled = true
+        label.TextSize = 75
+        label.TextStrokeTransparency = 0
+        label.TextStrokeColor3 = Color3.new(0,0,0)
+        label.TextColor3 = Color3.new(1, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.GothamBold
     end
-    return 0
 end
 
--- Boost Brainrot Generation label
+-- Boost Brainrot Generation label (for the highest value only)
 local function boostBrainrot(label)
     local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
     if billboard then
@@ -37,6 +44,20 @@ local function boostBrainrot(label)
     end
 end
 
+-- Reset BillboardGui to default settings
+local function resetBillboard(label)
+    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
+    if billboard then
+        billboard.MaxDistance = 100
+        billboard.AlwaysOnTop = false
+        billboard.Size = UDim2.new(0, 200, 0, 100)
+        label.TextSize = 20
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.TextStrokeTransparency = 1
+        label.BackgroundTransparency = 1
+    end
+end
+
 -- Update Name ESP size dynamically
 local function updateNameESP(nameBill)
     local adornee = nameBill.Adornee
@@ -50,7 +71,7 @@ end
 local function addESP(character, player)
     if not character then return end
     if player == Players.LocalPlayer then return end
-    local espAdded = {} -- Local table for this player
+    espAdded[player] = espAdded[player] or {}
     -- Name ESP
     local head = character:FindFirstChild("Head")
     if head and not head:FindFirstChild("NameESP") then
@@ -72,7 +93,7 @@ local function addESP(character, player)
         nameLabel.TextStrokeTransparency = 0
         nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
         nameLabel.Parent = nameBill
-        espAdded[nameBill] = true
+        espAdded[player][nameBill] = true
     end
     -- Body ESP
     for _, part in ipairs(character:GetChildren()) do
@@ -88,7 +109,7 @@ local function addESP(character, player)
                 box.AlwaysOnTop = true
                 box.ZIndex = 10
                 box.Parent = part
-                espAdded[box] = true
+                espAdded[player][box] = true
             else
                 box.Size = part.Size
             end
@@ -96,7 +117,7 @@ local function addESP(character, player)
     end
 end
 
--- Scan and boost only the highest Brainrot Generation label
+-- Loop for RemainingTime and Brainrot check
 task.spawn(function()
     while task.wait(1) do
         local newHighestGenLabel = nil
@@ -104,34 +125,30 @@ task.spawn(function()
 
         -- Scan all Generation labels
         for _, label in ipairs(workspace:GetDescendants()) do
-            if label:IsA("TextLabel") and label.Name == "Generation" then
-                local value = parseGenerationValue(label.Text)
-                if value > newHighestGenValue then
-                    newHighestGenValue = value
-                    newHighestGenLabel = label
+            if label:IsA("TextLabel") then
+                if label.Name == "RemainingTime" then
+                    boostRemainingTime(label)
+                elseif label.Name == "Generation" then
+                    local valueText = label.Text
+                    local amount = string.match(valueText, "%$(%d+%.?%d*)M/s")
+                    local value = amount and tonumber(amount) or 0
+                    if value > 2.0 and value > newHighestGenValue then
+                        newHighestGenValue = value
+                        newHighestGenLabel = label
+                    end
                 end
             end
         end
 
-        -- If a new highest is found, update the boost
+        -- Update boost for the highest Generation label
         if newHighestGenLabel and newHighestGenLabel ~= highestGenLabel then
-            -- Reset previous highest label's billboard (if it exists)
+            -- Reset previous highest label
             if highestGenLabel then
-                local oldBillboard = highestGenLabel:FindFirstAncestorWhichIsA("BillboardGui")
-                if oldBillboard then
-                    oldBillboard.MaxDistance = 100 -- Reset to a default value
-                    oldBillboard.AlwaysOnTop = false
-                    oldBillboard.Size = UDim2.new(0, 200, 0, 100) -- Reset to smaller size
-                    highestGenLabel.TextSize = 20
-                    highestGenLabel.TextColor3 = Color3.new(1, 1, 1) -- Reset to default color
-                end
+                resetBillboard(highestGenLabel)
             end
-
             -- Update to new highest
             highestGenLabel = newHighestGenLabel
             highestGenValue = newHighestGenValue
-
-            -- Boost the new highest
             boostBrainrot(highestGenLabel)
             if not notifiedGeneration[highestGenLabel] then
                 notifiedGeneration[highestGenLabel] = true
