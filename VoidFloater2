@@ -135,46 +135,48 @@ end
 player.CharacterAdded:Connect(setupChar)
 if player.Character then setupChar(player.Character) end
 -- FLOAT MECHANIC FUNCTION
-local function holdFloat(btn,maxTime,speed,cooldown)
+local function holdFloat(btn,maxTime,speed,color,cooldown)
     local holding = false
     local onCooldown = false
-    local bodyVel
-    local conn
+    local floatCube
     btn.MouseButton1Down:Connect(function()
-        if not rootPart or onCooldown then return end
+        if not rootPart or not humanoid or onCooldown then return end
         holding = true
         local startTime = tick()
-        bodyVel = Instance.new("BodyVelocity")
-        bodyVel.Velocity = Vector3.new(0, speed, 0)
-        bodyVel.MaxForce = Vector3.new(0, math.huge, 0)
-        bodyVel.Parent = rootPart
-        conn = RunService.Heartbeat:Connect(function()
-            if not holding or not bodyVel or not rootPart then
-                if conn then conn:Disconnect() end
-                return
-            end
-            if tick() - startTime >= maxTime then
+        floatCube = Instance.new("Part")
+        floatCube.Size = Vector3.new(5,0.2,5)
+        floatCube.Anchored = true
+        floatCube.CanCollide = true
+        floatCube.Material = Enum.Material.Neon
+        floatCube.Color = color
+        floatCube.Parent = workspace
+        local initialY = rootPart.Position.Y - humanoid.HipHeight - (floatCube.Size.Y / 2) - 0.1
+        floatCube.CFrame = CFrame.new(rootPart.Position.X, initialY, rootPart.Position.Z)
+        local conn
+        conn = RunService.Heartbeat:Connect(function(dt)
+            if not holding or not floatCube or not rootPart then conn:Disconnect() return end
+            floatCube.CFrame = CFrame.new(rootPart.Position.X, floatCube.Position.Y + speed * dt, rootPart.Position.Z)
+            if tick()-startTime >= maxTime then
                 holding = false
                 onCooldown = true
-                if bodyVel then bodyVel:Destroy() end
-                if conn then conn:Disconnect() end
-                task.delay(cooldown, function() onCooldown = false end)
+                floatCube:Destroy()
+                conn:Disconnect()
+                task.delay(cooldown,function() onCooldown = false end)
             end
         end)
     end)
     btn.MouseButton1Up:Connect(function()
         if holding then
             holding = false
-            if bodyVel then bodyVel:Destroy() end
-            if conn then conn:Disconnect() end
+            if floatCube then floatCube:Destroy() end
             onCooldown = true
-            task.delay(cooldown, function() onCooldown = false end)
+            task.delay(cooldown,function() onCooldown = false end)
         end
     end)
 end
 -- APPLY FLOAT TO BUTTONS
-holdFloat(floatBtn,3,8,0.4)
-holdFloat(quickBtn,1,24,0.4)
+holdFloat(floatBtn,3,8,Color3.fromRGB(140,0,255),0.4)
+holdFloat(quickBtn,1,24,Color3.fromRGB(255,0,0),0.4)
 -- 3RD FLOOR FUNCTIONALITY
 local thirdEnabled = false
 local originalTransparency = {}
