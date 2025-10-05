@@ -2,203 +2,185 @@ local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
-local notifiedSecrets = {}
+
 local espAdded = {}
-local notifiedGeneration = {} -- Track which Generation labels already notified
-local highestGenLabel = nil -- Track the label with the highest generation rate
-local highestGenValue = 0 -- Track the highest generation value
+local lastBestLabel = nil
+local lastBestText = ""
 
--- Boost RemainingTime label
+-- Boost RemainingTime label (slightly smaller than before)
 local function boostRemainingTime(label)
-    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
-    if billboard then
-        billboard.MaxDistance = 1e9
-        billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 600, 0, 320)
-        billboard.StudsOffset = Vector3.new(0, 5, 0)
-        label.TextScaled = true
-        label.TextSize = 75
-        label.TextStrokeTransparency = 0
-        label.TextStrokeColor3 = Color3.new(0,0,0)
-        label.TextColor3 = Color3.new(1, 1, 0)
-        label.BackgroundTransparency = 1
-        label.Font = Enum.Font.GothamBold
-    end
+	local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
+	if billboard then
+		billboard.MaxDistance = 1e9
+		billboard.AlwaysOnTop = true
+		billboard.Size = UDim2.new(0, 500, 0, 260) -- smaller than before
+		billboard.StudsOffset = Vector3.new(0, 5, 0)
+
+		label.TextScaled = true
+		label.TextSize = 60
+		label.TextStrokeTransparency = 0
+		label.TextStrokeColor3 = Color3.new(0, 0, 0)
+		label.TextColor3 = Color3.new(1, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.GothamBold
+	end
 end
 
--- Boost Brainrot Generation label (for the highest value only)
-local function boostBrainrot(label)
-    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
-    if billboard then
-        billboard.MaxDistance = 1e9
-        billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 300, 0, 150)
-        billboard.StudsOffset = Vector3.new(0, 5, 0)
-        label.TextScaled = true
-        label.TextSize = 50
-        label.TextStrokeTransparency = 0
-        label.TextStrokeColor3 = Color3.new(0,0,0)
-        label.TextColor3 = Color3.new(0, 1, 0) -- Green to stand out
-        label.BackgroundTransparency = 1
-        label.Font = Enum.Font.GothamBold
-    end
-end
+-- Boost top income label
+local function boostTopIncome(label)
+	local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
+	if billboard then
+		billboard.MaxDistance = 1e9
+		billboard.AlwaysOnTop = true
+		billboard.Size = UDim2.new(0, 600, 0, 320)
+		billboard.StudsOffset = Vector3.new(0, 5, 0)
 
--- Reset BillboardGui to default settings
-local function resetBillboard(label)
-    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
-    if billboard then
-        billboard.MaxDistance = 100
-        billboard.AlwaysOnTop = false
-        billboard.Size = UDim2.new(0, 200, 0, 100)
-        label.TextSize = 20
-        label.TextColor3 = Color3.new(1, 1, 1)
-        label.TextStrokeTransparency = 1
-        label.BackgroundTransparency = 1
-    end
+		label.TextScaled = true
+		label.TextSize = 75
+		label.TextStrokeTransparency = 0
+		label.TextStrokeColor3 = Color3.new(0, 0, 0)
+		label.TextColor3 = Color3.new(1, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.GothamBold
+	end
 end
 
 -- Update Name ESP size dynamically
 local function updateNameESP(nameBill)
-    local adornee = nameBill.Adornee
-    if not adornee then return end
-    local dist = (camera.CFrame.Position - adornee.Position).Magnitude
-    local scale = math.clamp(50 / dist, 0.5, 2)
-    nameBill.Size = UDim2.new(0, 200 * scale, 0, 50 * scale)
+	local adornee = nameBill.Adornee
+	if not adornee then return end
+	local dist = (camera.CFrame.Position - adornee.Position).Magnitude
+	local scale = math.clamp(50 / dist, 0.5, 2)
+	nameBill.Size = UDim2.new(0, 200 * scale, 0, 50 * scale)
 end
 
--- Add ESP to a character
+-- Add ESP to character
 local function addESP(character, player)
-    if not character then return end
-    if player == Players.LocalPlayer then return end
-    espAdded[player] = espAdded[player] or {}
-    -- Name ESP
-    local head = character:FindFirstChild("Head")
-    if head and not head:FindFirstChild("NameESP") then
-        local nameBill = Instance.new("BillboardGui")
-        nameBill.Name = "NameESP"
-        nameBill.Adornee = head
-        nameBill.AlwaysOnTop = true
-        nameBill.Size = UDim2.new(0, 200, 0, 50)
-        nameBill.StudsOffset = Vector3.new(0, 3, 0)
-        nameBill.MaxDistance = 1000
-        nameBill.Parent = head
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Size = UDim2.new(1,0,1,0)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.Text = player.Name
-        nameLabel.TextColor3 = Color3.new(1,0,0)
-        nameLabel.TextScaled = true
-        nameLabel.Font = Enum.Font.GothamBold
-        nameLabel.TextStrokeTransparency = 0
-        nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
-        nameLabel.Parent = nameBill
-        espAdded[player][nameBill] = true
-    end
-    -- Body ESP
-    for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            local box = part:FindFirstChild("ESPBox")
-            if not box then
-                box = Instance.new("BoxHandleAdornment")
-                box.Name = "ESPBox"
-                box.Adornee = part
-                box.Size = part.Size
-                box.Transparency = 0.5
-                box.Color3 = Color3.new(1,0,0)
-                box.AlwaysOnTop = true
-                box.ZIndex = 10
-                box.Parent = part
-                espAdded[player][box] = true
-            else
-                box.Size = part.Size
-            end
-        end
-    end
+	if not character or player == Players.LocalPlayer then return end
+	espAdded[player] = espAdded[player] or {}
+
+	local head = character:FindFirstChild("Head")
+	if head and not head:FindFirstChild("NameESP") then
+		local nameBill = Instance.new("BillboardGui")
+		nameBill.Name = "NameESP"
+		nameBill.Adornee = head
+		nameBill.AlwaysOnTop = true
+		nameBill.Size = UDim2.new(0, 200, 0, 50)
+		nameBill.StudsOffset = Vector3.new(0, 3, 0)
+		nameBill.MaxDistance = 1000
+		nameBill.Parent = head
+
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.Size = UDim2.new(1, 0, 1, 0)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.Text = player.Name
+		nameLabel.TextColor3 = Color3.new(1, 0, 0)
+		nameLabel.TextScaled = true
+		nameLabel.Font = Enum.Font.GothamBold
+		nameLabel.TextStrokeTransparency = 0
+		nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+		nameLabel.Parent = nameBill
+	end
+
+	for _, part in ipairs(character:GetChildren()) do
+		if part:IsA("BasePart") then
+			local box = part:FindFirstChild("ESPBox")
+			if not box then
+				box = Instance.new("BoxHandleAdornment")
+				box.Name = "ESPBox"
+				box.Adornee = part
+				box.Size = part.Size
+				box.Transparency = 0.5
+				box.Color3 = Color3.new(1, 0, 0)
+				box.AlwaysOnTop = true
+				box.ZIndex = 10
+				box.Parent = part
+			else
+				box.Size = part.Size
+			end
+		end
+	end
 end
 
--- Loop for RemainingTime and Brainrot check
+-- Loop: find and boost best income + lock timer
 task.spawn(function()
-    while task.wait(1) do
-        local newHighestGenLabel = nil
-        local newHighestGenValue = 0
+	while task.wait(2) do
+		local bestLabel = nil
+		local bestAmount = 0
+		local bestText = ""
 
-        -- Scan all Generation labels
-        for _, label in ipairs(workspace:GetDescendants()) do
-            if label:IsA("TextLabel") then
-                if label.Name == "RemainingTime" then
-                    boostRemainingTime(label)
-                elseif label.Name == "Generation" then
-                    local valueText = label.Text
-                    local amount = string.match(valueText, "%$(%d+%.?%d*)M/s")
-                    local value = amount and tonumber(amount) or 0
-                    if value > 2.0 and value > newHighestGenValue then
-                        newHighestGenValue = value
-                        newHighestGenLabel = label
-                    end
-                end
-            end
-        end
+		for _, label in ipairs(workspace:GetDescendants()) do
+			if label:IsA("TextLabel") then
+				-- Handle lock timer boost
+				if label.Name == "RemainingTime" then
+					boostRemainingTime(label)
+				end
 
-        -- Update boost for the highest Generation label
-        if newHighestGenLabel and newHighestGenLabel ~= highestGenLabel then
-            -- Reset previous highest label
-            if highestGenLabel then
-                resetBillboard(highestGenLabel)
-            end
-            -- Update to new highest
-            highestGenLabel = newHighestGenLabel
-            highestGenValue = newHighestGenValue
-            boostBrainrot(highestGenLabel)
-            if not notifiedGeneration[highestGenLabel] then
-                notifiedGeneration[highestGenLabel] = true
-                pcall(function()
-                    StarterGui:SetCore("SendNotification", {
-                        Title = highestGenLabel.Text .. " Brainrot in your server!",
-                        Text = "Highest generation rate found!",
-                        Duration = 5
-                    })
-                end)
-            end
-        end
-    end
+				-- Find best income label
+				if label.Name == "Generation" then
+					local amount = string.match(label.Text, "%$(%d+%.?%d*)M/s")
+					if amount then
+						local num = tonumber(amount)
+						if num and num > bestAmount then
+							bestAmount = num
+							bestLabel = label
+							bestText = label.Text
+						end
+					end
+				end
+			end
+		end
+
+		if bestLabel and bestLabel ~= lastBestLabel then
+			lastBestLabel = bestLabel
+			lastBestText = bestText
+			boostTopIncome(bestLabel)
+
+			pcall(function()
+				StarterGui:SetCore("SendNotification", {
+					Title = "🔥 Highest Income Found",
+					Text = "Top Income: " .. bestText,
+					Duration = 5
+				})
+			end)
+		end
+	end
 end)
 
 -- ESP for players
 local function onCharacterAdded(character, player)
-    task.wait(1)
-    addESP(character, player)
+	task.wait(1)
+	addESP(character, player)
 end
 
 local function onPlayerAdded(player)
-    player.CharacterAdded:Connect(function(char)
-        onCharacterAdded(char, player)
-    end)
-    if player.Character then
-        onCharacterAdded(player.Character, player)
-    end
+	player.CharacterAdded:Connect(function(char)
+		onCharacterAdded(char, player)
+	end)
+	if player.Character then
+		onCharacterAdded(player.Character, player)
+	end
 end
 
 for _, p in ipairs(Players:GetPlayers()) do
-    if p ~= Players.LocalPlayer then
-        onPlayerAdded(p)
-    end
+	if p ~= Players.LocalPlayer then
+		onPlayerAdded(p)
+	end
 end
-
 Players.PlayerAdded:Connect(onPlayerAdded)
 
--- Update name ESP and body ESP every frame
+-- Update name ESP every frame
 RunService.RenderStepped:Connect(function()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer and player.Character then
-            addESP(player.Character, player)
-            local head = player.Character:FindFirstChild("Head")
-            if head then
-                local nameBill = head:FindFirstChild("NameESP")
-                if nameBill then
-                    updateNameESP(nameBill)
-                end
-            end
-        end
-    end
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= Players.LocalPlayer and player.Character then
+			addESP(player.Character, player)
+			local head = player.Character:FindFirstChild("Head")
+			if head then
+				local nameBill = head:FindFirstChild("NameESP")
+				if nameBill then
+					updateNameESP(nameBill)
+				end
+			end
+		end
+	end
 end)
