@@ -2,50 +2,24 @@ local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
+local notifiedGeneration = {} -- Track which Generation labels already notified
+local highestGenLabel = nil -- Track the label with the highest generation rate
+local highestGenValue = 0 -- Track the highest generation value
 
-local notifiedSecrets = {}
-local espAdded = {}
-local notifiedGeneration = {} -- track which Generation labels already notified
-
--- Boost Secret label
-local function boostSecret(label)
-    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
-    if billboard then
-        billboard.MaxDistance = 1e9
-        billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 300, 0, 150)
-        billboard.StudsOffset = Vector3.new(0, 5, 0)
-
-        label.TextScaled = true
-        label.TextSize = 50
-        label.TextStrokeTransparency = 0
-        label.TextStrokeColor3 = Color3.new(0,0,0)
-        label.TextColor3 = Color3.new(1, 1, 0)
-        label.BackgroundTransparency = 1
-        label.Font = Enum.Font.GothamBold
+-- Function to parse generation value (e.g., $150/s or $9.5M/s)
+local function parseGenerationValue(text)
+    local number, unit = string.match(text, "%$(%d+%.?%d*)[M]?/s")
+    if number then
+        number = tonumber(number) or 0
+        if unit == "M" then
+            number = number * 1e6 -- Convert millions to base units
+        end
+        return number
     end
+    return 0
 end
 
--- Boost RemainingTime label (slightly bigger than Secret)
-local function boostRemainingTime(label)
-    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
-    if billboard then
-        billboard.MaxDistance = 1e9
-        billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 600, 0, 320)
-        billboard.StudsOffset = Vector3.new(0, 5, 0)
-
-        label.TextScaled = true
-        label.TextSize = 75
-        label.TextStrokeTransparency = 0
-        label.TextStrokeColor3 = Color3.new(0,0,0)
-        label.TextColor3 = Color3.new(1, 1, 0)
-        label.BackgroundTransparency = 1
-        label.Font = Enum.Font.GothamBold
-    end
-end
-
--- Boost Brainrot Generation labels (same size as Secret)
+-- Boost Brainrot Generation label
 local function boostBrainrot(label)
     local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
     if billboard then
@@ -53,12 +27,11 @@ local function boostBrainrot(label)
         billboard.AlwaysOnTop = true
         billboard.Size = UDim2.new(0, 300, 0, 150)
         billboard.StudsOffset = Vector3.new(0, 5, 0)
-
         label.TextScaled = true
         label.TextSize = 50
         label.TextStrokeTransparency = 0
         label.TextStrokeColor3 = Color3.new(0,0,0)
-        label.TextColor3 = Color3.new(0, 1, 0) -- green so it stands out
+        label.TextColor3 = Color3.new(0, 1, 0) -- Green to stand out
         label.BackgroundTransparency = 1
         label.Font = Enum.Font.GothamBold
     end
@@ -77,8 +50,7 @@ end
 local function addESP(character, player)
     if not character then return end
     if player == Players.LocalPlayer then return end
-    espAdded[player] = espAdded[player] or {}
-
+    local espAdded = {} -- Local table for this player
     -- Name ESP
     local head = character:FindFirstChild("Head")
     if head and not head:FindFirstChild("NameESP") then
@@ -90,7 +62,6 @@ local function addESP(character, player)
         nameBill.StudsOffset = Vector3.new(0, 3, 0)
         nameBill.MaxDistance = 1000
         nameBill.Parent = head
-
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Size = UDim2.new(1,0,1,0)
         nameLabel.BackgroundTransparency = 1
@@ -101,8 +72,8 @@ local function addESP(character, player)
         nameLabel.TextStrokeTransparency = 0
         nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
         nameLabel.Parent = nameBill
+        espAdded[nameBill] = true
     end
-
     -- Body ESP
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
@@ -117,6 +88,7 @@ local function addESP(character, player)
                 box.AlwaysOnTop = true
                 box.ZIndex = 10
                 box.Parent = part
+                espAdded[box] = true
             else
                 box.Size = part.Size
             end
@@ -124,42 +96,52 @@ local function addESP(character, player)
     end
 end
 
--- Loop for RemainingTime / Secret / Brainrot check
+-- Scan and boost only the highest Brainrot Generation label
 task.spawn(function()
     while task.wait(1) do
+        local newHighestGenLabel = nil
+        local newHighestGenValue = 0
+
+        -- Scan all Generation labels
         for _, label in ipairs(workspace:GetDescendants()) do
-            if label:IsA("TextLabel") then
-                if label.Name == "RemainingTime" then
-                    boostRemainingTime(label)
-                elseif string.find(label.Text, "Secret") then
-                    boostSecret(label)
-                    local billboard = label:FindFirstAncestorWhichIsA("BillboardGui")
-                    if billboard and not notifiedSecrets[billboard] then
-                        notifiedSecrets[billboard] = true
-                        pcall(function()
-                            StarterGui:SetCore("SendNotification", {
-                                Title = "Secret in server",
-                                Text = "Somebody has a secret in this server..",
-                                Duration = 5
-                            })
-                        end)
-                    end
+            if label:IsA("TextLabel") and label.Name == "Generation" then
+                local value = parseGenerationValue(label.Text)
+                if value > newHighestGenValue then
+                    newHighestGenValue = value
+                    newHighestGenLabel = label
                 end
-                if label.Name == "Generation" and not notifiedGeneration[label] then
-                    local valueText = label.Text
-                    local amount = string.match(valueText, "%$(%d+%.?%d*)M/s")
-                    if amount and tonumber(amount) and tonumber(amount) > 2.0 then
-                        notifiedGeneration[label] = true
-                        boostBrainrot(label)
-                        pcall(function()
-                            StarterGui:SetCore("SendNotification", {
-                                Title = valueText .. " Brainrot in your server!",
-                                Text = "",
-                                Duration = 5
-                            })
-                        end)
-                    end
+            end
+        end
+
+        -- If a new highest is found, update the boost
+        if newHighestGenLabel and newHighestGenLabel ~= highestGenLabel then
+            -- Reset previous highest label's billboard (if it exists)
+            if highestGenLabel then
+                local oldBillboard = highestGenLabel:FindFirstAncestorWhichIsA("BillboardGui")
+                if oldBillboard then
+                    oldBillboard.MaxDistance = 100 -- Reset to a default value
+                    oldBillboard.AlwaysOnTop = false
+                    oldBillboard.Size = UDim2.new(0, 200, 0, 100) -- Reset to smaller size
+                    highestGenLabel.TextSize = 20
+                    highestGenLabel.TextColor3 = Color3.new(1, 1, 1) -- Reset to default color
                 end
+            end
+
+            -- Update to new highest
+            highestGenLabel = newHighestGenLabel
+            highestGenValue = newHighestGenValue
+
+            -- Boost the new highest
+            boostBrainrot(highestGenLabel)
+            if not notifiedGeneration[highestGenLabel] then
+                notifiedGeneration[highestGenLabel] = true
+                pcall(function()
+                    StarterGui:SetCore("SendNotification", {
+                        Title = highestGenLabel.Text .. " Brainrot in your server!",
+                        Text = "Highest generation rate found!",
+                        Duration = 5
+                    })
+                end)
             end
         end
     end
@@ -185,6 +167,7 @@ for _, p in ipairs(Players:GetPlayers()) do
         onPlayerAdded(p)
     end
 end
+
 Players.PlayerAdded:Connect(onPlayerAdded)
 
 -- Update name ESP and body ESP every frame
