@@ -1,0 +1,226 @@
+-- LocalScript in StarterGui
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Stats = game:GetService("Stats")
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "VoidhubFloat"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+-- MAIN FRAME
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 200, 0, 260) -- slightly shorter
+mainFrame.Position = UDim2.new(0.35,0,0.35,0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+mainFrame.BackgroundTransparency = 0.3
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = gui
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0,14)
+-- OUTLINE
+local outline = Instance.new("UIStroke")
+outline.Parent = mainFrame
+outline.Thickness = 3
+outline.LineJoinMode = Enum.LineJoinMode.Round
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.new(1,1,1)),
+    ColorSequenceKeypoint.new(1, Color3.new(0,0,0))
+}
+gradient.Rotation = 0
+gradient.Parent = outline
+RunService.Heartbeat:Connect(function(dt)
+    gradient.Rotation = (gradient.Rotation + dt*100)%360
+end)
+-- TITLE
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0.75,0,0,40)
+title.Position = UDim2.new(0,0,0,0)
+title.BackgroundTransparency = 1
+title.Text = "VoidHub Float"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.Parent = mainFrame
+-- HEADER
+local header = Instance.new("TextLabel")
+header.Size = UDim2.new(1,0,0,25)
+header.Position = UDim2.new(0,0,0,45)
+header.BackgroundTransparency = 1
+header.Text = "Steal a Brainrot"
+header.TextColor3 = Color3.fromRGB(200,200,200)
+header.Font = Enum.Font.Gotham
+header.TextScaled = true
+header.Parent = mainFrame
+-- FLOAT BUTTON
+local floatBtn = Instance.new("TextButton")
+floatBtn.Size = UDim2.new(0.8,0,0,40)
+floatBtn.Position = UDim2.new(0.1,0,0.35,0) -- moved up
+floatBtn.Text = "Float"
+floatBtn.TextColor3 = Color3.fromRGB(255,255,255)
+floatBtn.Font = Enum.Font.GothamBold
+floatBtn.TextScaled = true
+floatBtn.BackgroundColor3 = Color3.fromRGB(120,0,200)
+floatBtn.Parent = mainFrame
+Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(0,14)
+local floatGradient = Instance.new("UIGradient", floatBtn)
+floatGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(180,0,220)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(120,0,200))
+}
+-- QUICK FLOAT BUTTON
+local quickBtn = Instance.new("TextButton")
+quickBtn.Size = UDim2.new(0.8,0,0,40)
+quickBtn.Position = UDim2.new(0.1,0,0.58,0) -- moved up
+quickBtn.Text = "Quick Float"
+quickBtn.TextColor3 = Color3.fromRGB(255,255,255)
+quickBtn.Font = Enum.Font.GothamBold
+quickBtn.TextScaled = true
+quickBtn.BackgroundColor3 = Color3.fromRGB(180,0,0)
+quickBtn.Parent = mainFrame
+Instance.new("UICorner", quickBtn).CornerRadius = UDim.new(0,14)
+local quickGradient = Instance.new("UIGradient", quickBtn)
+quickGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0,0,0))
+}
+-- 3RD FLOOR BUTTON
+local thirdBtn = Instance.new("TextButton")
+thirdBtn.Size = UDim2.new(0.8,0,0,40)
+thirdBtn.Position = UDim2.new(0.1,0,0.81,0) -- moved up
+thirdBtn.Text = "3RD Floor"
+thirdBtn.TextColor3 = Color3.fromRGB(255,255,255)
+thirdBtn.Font = Enum.Font.GothamBold
+thirdBtn.TextScaled = true
+thirdBtn.BackgroundColor3 = Color3.fromRGB(0,120,200)
+thirdBtn.Parent = mainFrame
+Instance.new("UICorner", thirdBtn).CornerRadius = UDim.new(0,14)
+local thirdGradient = Instance.new("UIGradient", thirdBtn)
+thirdGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0,180,220)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0,120,200))
+}
+-- MINIMIZE BUTTON
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0,35,0,35)
+minimizeBtn.Position = UDim2.new(1,-40,0,5)
+minimizeBtn.Text = "-"
+minimizeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0,10)
+minimizeBtn.Parent = mainFrame
+-- PING LABEL
+local pingLabel = Instance.new("TextLabel")
+pingLabel.Size = UDim2.new(0,100,0,25)
+pingLabel.Position = UDim2.new(1,-110,1,-30)
+pingLabel.BackgroundTransparency = 1
+pingLabel.TextColor3 = Color3.fromRGB(200,200,200)
+pingLabel.Font = Enum.Font.Gotham
+pingLabel.TextScaled = true
+pingLabel.Text = "Ping: 0"
+pingLabel.Parent = mainFrame
+RunService.RenderStepped:Connect(function()
+    local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+    pingLabel.Text = "Ping: "..ping
+end)
+-- CHARACTER SETUP
+local char, rootPart, humanoid
+local function setupChar(c)
+    char = c
+    rootPart = char:WaitForChild("HumanoidRootPart")
+    humanoid = char:WaitForChild("Humanoid")
+end
+player.CharacterAdded:Connect(setupChar)
+if player.Character then setupChar(player.Character) end
+-- FLOAT MECHANIC FUNCTION
+local function holdFloat(btn,maxTime,speed,cooldown)
+    local holding = false
+    local onCooldown = false
+    local bodyVel
+    local conn
+    btn.MouseButton1Down:Connect(function()
+        if not rootPart or onCooldown then return end
+        holding = true
+        local startTime = tick()
+        bodyVel = Instance.new("BodyVelocity")
+        bodyVel.Velocity = Vector3.new(0, speed, 0)
+        bodyVel.MaxForce = Vector3.new(0, math.huge, 0)
+        bodyVel.Parent = rootPart
+        conn = RunService.Heartbeat:Connect(function()
+            if not holding or not bodyVel or not rootPart then
+                if conn then conn:Disconnect() end
+                return
+            end
+            if tick() - startTime >= maxTime then
+                holding = false
+                onCooldown = true
+                if bodyVel then bodyVel:Destroy() end
+                if conn then conn:Disconnect() end
+                task.delay(cooldown, function() onCooldown = false end)
+            end
+        end)
+    end)
+    btn.MouseButton1Up:Connect(function()
+        if holding then
+            holding = false
+            if bodyVel then bodyVel:Destroy() end
+            if conn then conn:Disconnect() end
+            onCooldown = true
+            task.delay(cooldown, function() onCooldown = false end)
+        end
+    end)
+end
+-- APPLY FLOAT TO BUTTONS
+holdFloat(floatBtn,3,8,0.4)
+holdFloat(quickBtn,1,24,0.4)
+-- 3RD FLOOR FUNCTIONALITY
+local thirdEnabled = false
+local originalTransparency = {}
+local function setMapTransparency(val)
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Transparency ~= 1 then
+            if not originalTransparency[obj] then
+                originalTransparency[obj] = obj.Transparency
+            end
+            obj.Transparency = val
+        end
+    end
+end
+local bodyVel
+thirdBtn.MouseButton1Click:Connect(function()
+    thirdEnabled = not thirdEnabled
+    if thirdEnabled then
+        setMapTransparency(0.5)
+        if rootPart then
+            bodyVel = Instance.new("BodyVelocity")
+            bodyVel.Velocity = Vector3.new(0, 25, 0)
+            bodyVel.MaxForce = Vector3.new(0, math.huge, 0)
+            bodyVel.Parent = rootPart
+        end
+    else
+        for obj,trans in pairs(originalTransparency) do
+            if obj and obj.Parent then
+                obj.Transparency = trans
+            end
+        end
+        originalTransparency = {}
+        if bodyVel then bodyVel:Destroy() bodyVel = nil end
+        if rootPart then rootPart.Velocity = Vector3.zero end
+    end
+end)
+-- MINIMIZE LOGIC
+local minimized = false
+minimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    local goalSize = minimized and UDim2.new(0,200,0,60) or UDim2.new(0,200,0,260)
+    TweenService:Create(mainFrame, TweenInfo.new(0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{
+        Size = goalSize
+    }):Play()
+    floatBtn.Visible = not minimized
+    quickBtn.Visible = not minimized
+    thirdBtn.Visible = not minimized
+    header.Visible = not minimized
+    pingLabel.Visible = not minimized
+end)
