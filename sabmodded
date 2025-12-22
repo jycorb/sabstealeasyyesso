@@ -1,0 +1,210 @@
+-- SAB Modded Games Stealer (RGB Edition)
+-- LocalScript inside StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- GUI setup
+local gui = Instance.new("ScreenGui")
+gui.Name = "SABModdedGamesStealer"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+-- Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 190)
+frame.Position = UDim2.new(0.5, -150, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 10)
+
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 28)
+titleBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Text = "SAB modded games stealer"
+title.Size = UDim2.new(1, -80, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.Parent = titleBar
+
+-- Minimize Button
+local minimize = Instance.new("TextButton")
+minimize.Text = "-"
+minimize.Size = UDim2.new(0, 28, 0, 28)
+minimize.Position = UDim2.new(1, -32, 0, 0)
+minimize.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+minimize.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimize.Font = Enum.Font.GothamBold
+minimize.TextSize = 16
+minimize.Parent = titleBar
+
+local minCorner = Instance.new("UICorner", minimize)
+minCorner.CornerRadius = UDim.new(0, 6)
+
+-- Body
+local body = Instance.new("Frame")
+body.Size = UDim2.new(1, 0, 1, -28)
+body.Position = UDim2.new(0, 0, 0, 28)
+body.BackgroundTransparency = 1
+body.Parent = frame
+
+-- Button factory
+local function makeButton(text, yPos, color)
+	local btn = Instance.new("TextButton")
+	btn.Text = text
+	btn.Size = UDim2.new(0, 180, 0, 38)
+	btn.Position = UDim2.new(0.5, -90, 0, yPos)
+	btn.BackgroundColor3 = color or Color3.fromRGB(60, 60, 60)
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 14
+	btn.AutoButtonColor = true
+	btn.Parent = body
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = btn
+
+	local uiStroke = Instance.new("UIStroke")
+	uiStroke.Thickness = 2
+	uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	uiStroke.Parent = btn
+
+	return btn, uiStroke
+end
+
+-- Buttons
+local tpBase, tpBaseStroke = makeButton("TP to base", 10)
+local tpForward, tpForwardStroke = makeButton("TP forward", 55)
+local instantSteal, instantStealStroke = makeButton("Instant steal", 100, Color3.fromRGB(100, 60, 60))
+
+-- Smooth RGB border animation
+task.spawn(function()
+	local hue = 0
+	while task.wait(0.03) do
+		hue += 0.01
+		local col = Color3.fromHSV(hue % 1, 1, 1)
+		tpBaseStroke.Color = col
+		tpForwardStroke.Color = col
+		instantStealStroke.Color = col
+	end
+end)
+
+-- Minimize logic
+local minimized = false
+local fullSize = frame.Size
+local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+minimize.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	if minimized then
+		TweenService:Create(frame, tweenInfo, {Size = UDim2.new(0, 300, 0, 28)}):Play()
+		body.Visible = false
+	else
+		TweenService:Create(frame, tweenInfo, {Size = fullSize}):Play()
+		task.wait(0.25)
+		body.Visible = true
+	end
+end)
+
+-- Find base part for player
+local function findSignForPlayer(name)
+	name = string.lower(name)
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
+			for _, child in ipairs(obj:GetDescendants()) do
+				if child:IsA("TextLabel") and string.find(string.lower(child.Text), name, 1, true) then
+					if obj.Parent and obj.Parent:IsA("BasePart") then
+						return obj.Parent
+					end
+				end
+			end
+		elseif obj:IsA("TextLabel") and obj.Parent and obj.Parent:IsA("BasePart") then
+			if string.find(string.lower(obj.Text), name, 1, true) then
+				return obj.Parent
+			end
+		end
+	end
+end
+
+-- TP to Base
+tpBase.MouseButton1Click:Connect(function()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local name = player.DisplayName or player.Name
+	local part = findSignForPlayer(name) or findSignForPlayer(player.Name)
+
+	if part then
+		local newPos = Vector3.new(part.Position.X, part.Position.Y - 12, part.Position.Z)
+		hrp.CFrame = CFrame.new(newPos)
+		tpBase.Text = "Teleported!"
+	else
+		tpBase.Text = "No sign found!"
+	end
+
+	task.wait(1)
+	tpBase.Text = "TP to base"
+end)
+
+-- TP Forward
+tpForward.MouseButton1Click:Connect(function()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local lookVec = hrp.CFrame.LookVector
+	local newPos = hrp.Position + (lookVec * 2)
+	hrp.CFrame = CFrame.new(newPos, newPos + lookVec)
+end)
+
+-- Instant Steal OFF by default
+local instantStealEnabled = false
+
+-- Function to teleport instantly when ProximityPrompt triggers
+local function setupPrompt(prompt)
+	if not prompt:IsA("ProximityPrompt") then return end
+	prompt.Triggered:Connect(function(triggeringPlayer)
+		if triggeringPlayer == player and instantStealEnabled then
+			local char = player.Character or player.CharacterAdded:Wait()
+			local hrp = char:WaitForChild("HumanoidRootPart")
+			local name = player.DisplayName or player.Name
+			local part = findSignForPlayer(name) or findSignForPlayer(player.Name)
+
+			if part then
+				hrp.CFrame = CFrame.new(part.Position.X, part.Position.Y - 12, part.Position.Z)
+				instantSteal.Text = "Teleported!"
+			else
+				instantSteal.Text = "No sign found!"
+			end
+
+			task.wait(1)
+			instantSteal.Text = instantStealEnabled and "Instant steal (ON)" or "Instant steal (OFF)"
+		end
+	end)
+end
+
+-- Hook up existing and new prompts
+for _, obj in ipairs(workspace:GetDescendants()) do
+	setupPrompt(obj)
+end
+workspace.DescendantAdded:Connect(setupPrompt)
+
+-- Button toggles the instant steal
+instantSteal.MouseButton1Click:Connect(function()
+	instantStealEnabled = not instantStealEnabled
+	instantSteal.Text = instantStealEnabled and "Instant steal (ON)" or "Instant steal (OFF)"
+end)
